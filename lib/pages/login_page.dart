@@ -80,10 +80,14 @@ class _LoginPageState extends State<LoginPage> {
 
     if (_emailError == null && _passwordError == null) {
       try {
+        print('Attempting login for email: $email');
         // Generate and store token
         await apiService.postGenerateToken(email, password);
         UserProfile? userProfile = await apiService.getProfile();
         List<Module>? modules = await apiService.getModules();
+
+        print('User profile: ' + (userProfile != null ? userProfile.toString() : 'null'));
+        print('Modules: ' + (modules != null ? modules.length.toString() : 'null'));
 
         if (userProfile != null) {
           await storageService.storeUserProfile(userProfile);
@@ -100,11 +104,13 @@ class _LoginPageState extends State<LoginPage> {
         await storage.write(key: 'email', value: email);
         await storage.write(key: 'password', value: password);
 
+        print('Login success, navigating to /home');
         Navigator.of(context).pushReplacementNamed('/home');
-      } catch (e) {
+      } catch (e, stackTrace) {
+        print('Login error: ' + e.toString());
+        print('Stack trace: ' + stackTrace.toString());
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Please input a registered user account')),
+          SnackBar(content: Text('Login failed: ' + e.toString())),
         );
       }
     }
