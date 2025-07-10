@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:i_read_app/services/api.dart';
+import 'package:i_read_app/services/firestore_module_service.dart';
 import 'package:i_read_app/models/module.dart';
 
 class ModulesMenu extends StatefulWidget {
@@ -14,7 +14,8 @@ class ModulesMenu extends StatefulWidget {
 class _ModulesMenuState extends State<ModulesMenu> {
   List<Map<String, dynamic>> modules = [];
   bool isLoading = true;
-  ApiService apiService = ApiService();
+  // ApiService apiService = ApiService();
+  final FirestoreModuleService firestoreModuleService = FirestoreModuleService();
 
   @override
   void initState() {
@@ -24,7 +25,7 @@ class _ModulesMenuState extends State<ModulesMenu> {
 
   Future<void> _loadModules() async {
     try {
-      List<Module> storedModules = await apiService.getModules();
+      List<Module> storedModules = await firestoreModuleService.getModules();
       Map<String, Map<String, dynamic>> moduleMap = {};
 
       for (var module in storedModules) {

@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:i_read_app/models/module.dart';
 import 'package:i_read_app/models/user.dart';
-import 'package:i_read_app/services/api.dart';
+import 'package:i_read_app/services/firestore_module_service.dart';
+import 'package:i_read_app/services/firestore_user_profile_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:i_read_app/services/storage.dart';
 
 class ProfileMenu extends StatefulWidget {
@@ -13,15 +15,17 @@ class ProfileMenu extends StatefulWidget {
 }
 
 class _ProfileMenuState extends State<ProfileMenu> {
-  int? xp = 0;
-  int? completedModules = 0;
-  int? totalModules = 0;
+  int xp = 0;
+  int completedModules = 0;
+  int totalModules = 0;
   String fullName = '';
   String strand = '';
   String schoolName = 'Tanauan School of Fisheries';
   String rank = 'Unranked';
-  List<CompletedModule>? completedModuelsList = [];
-  ApiService apiService = ApiService();
+  List<CompletedModule> completedModuelsList = [];
+  // ApiService apiService = ApiService();
+  final FirestoreModuleService firestoreModuleService = FirestoreModuleService();
+  final FirestoreUserProfileService firestoreUserProfileService = FirestoreUserProfileService();
   StorageService storageService = StorageService();
 
   @override
@@ -31,14 +35,27 @@ class _ProfileMenuState extends State<ProfileMenu> {
   }
 
   Future<void> fetchUserData() async {
-    UserProfile? userProfile = await apiService.getProfile();
-    List<Module> moduleList = await apiService.getModules();
+    String? userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) {
+      setState(() {
+        fullName = '';
+        xp = 0;
+        completedModules = 0;
+        strand = '';
+        completedModuelsList = [];
+        rank = 'Unranked';
+        totalModules = 0;
+      });
+      return;
+    }
+    UserProfile? userProfile = await firestoreUserProfileService.getUserProfile(userId);
+    List<Module> moduleList = await firestoreModuleService.getModules();
     setState(() {
-      fullName = '${userProfile?.firstName} ${userProfile?.lastName}';
-      xp = userProfile?.experience;
-      completedModules = userProfile?.completedModules.length;
+      fullName = '${userProfile?.firstName ?? ''} ${userProfile?.lastName ?? ''}';
+      xp = userProfile?.experience ?? 0;
+      completedModules = userProfile?.completedModules.length ?? 0;
       strand = userProfile?.section ?? '';
-      completedModuelsList = userProfile?.completedModules;
+      completedModuelsList = userProfile?.completedModules ?? [];
       rank = userProfile?.rank.toString() ?? '';
       totalModules = moduleList.length;
     });
@@ -149,7 +166,7 @@ class _ProfileMenuState extends State<ProfileMenu> {
               _buildProgressCard(
                 'Modules Completed',
                 '$completedModules/$totalModules',
-                completedModules! / (totalModules! > 0 ? totalModules! : 1),
+                completedModules / (totalModules > 0 ? totalModules : 1),
               ),
               const SizedBox(height: 20),
               Center(
@@ -165,13 +182,13 @@ class _ProfileMenuState extends State<ProfileMenu> {
               const SizedBox(height: 10),
               Expanded(
                 child: ListView.builder(
-                  itemCount: completedModuelsList?.length ?? 0,
+                  itemCount: completedModuelsList.length,
                   itemBuilder: (context, index) {
-                    CompletedModule? currentModule =
-                        completedModuelsList?[index];
+                    CompletedModule currentModule =
+                        completedModuelsList[index];
                     return _buildStatCard(
-                      currentModule?.moduleTitle ?? '',
-                      currentModule?.pointsEarned.toString() ?? '',
+                      currentModule.moduleTitle,
+                      currentModule.pointsEarned.toString(),
                     );
                   },
                 ),

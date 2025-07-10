@@ -5,7 +5,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:i_read_app/models/module.dart';
 import 'package:i_read_app/models/user.dart';
-import 'package:i_read_app/services/api.dart';
+import 'package:i_read_app/services/firestore_module_service.dart';
 import 'package:i_read_app/services/storage.dart';
 import '../help.dart';
 import '../levels/readcomp_levels/readcomp_levels.dart';
@@ -26,7 +26,8 @@ class _HomeMenuState extends State<HomeMenu>
     with SingleTickerProviderStateMixin {
   List<CompletedModule>? completedModules = [];
   List<Module> allModules = [];
-  ApiService apiService = ApiService();
+  // ApiService apiService = ApiService();
+  final FirestoreModuleService firestoreModuleService = FirestoreModuleService();
   StorageService storageService = StorageService();
   bool _isMenuOpen = false;
   late AnimationController _animationController;
@@ -51,9 +52,8 @@ class _HomeMenuState extends State<HomeMenu>
     super.dispose();
   }
 
-  Future<UserProfile?> _fetchUserStats() {
-    return apiService.getProfile();
-  }
+  // TODO: Migrate user profile fetching to Firestore
+  Future<UserProfile?> _fetchUserStats() async => null;
 
   Module _defaultModule() {
     return Module(
@@ -74,7 +74,7 @@ class _HomeMenuState extends State<HomeMenu>
   }
 
   Future<void> _loadModules() async {
-    List<Module> storedModules = await apiService.getModules();
+    List<Module> storedModules = await firestoreModuleService.getModules();
     List<Module> fetchedModules = [];
 
     fetchedModules.add(storedModules.firstWhere(
