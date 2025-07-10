@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:i_read_app/models/module.dart';
 import 'package:i_read_app/models/user.dart';
-import 'package:i_read_app/services/api.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:i_read_app/firebase_options.dart';
+// import 'package:i_read_app/services/api.dart';
 import 'package:i_read_app/services/storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -21,7 +24,7 @@ class _LoginPageState extends State<LoginPage> {
   bool _isPasswordVisible = false;
   String? _emailError;
   String? _passwordError;
-  ApiService apiService = ApiService();
+  // ApiService apiService = ApiService();
   StorageService storageService = StorageService();
   final storage = FlutterSecureStorage();
 
@@ -79,38 +82,37 @@ class _LoginPageState extends State<LoginPage> {
     _validatePassword(password);
 
     if (_emailError == null && _passwordError == null) {
+      // Initialize Firebase if not already initialized
       try {
-        print('Attempting login for email: $email');
-        // Generate and store token
-        await apiService.postGenerateToken(email, password);
-        UserProfile? userProfile = await apiService.getProfile();
-        List<Module>? modules = await apiService.getModules();
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      } catch (e) {
+        // Firebase may already be initialized, ignore error
+      }
 
-        print('User profile: ' + (userProfile != null ? userProfile.toString() : 'null'));
-        print('Modules: ' + (modules != null ? modules.length.toString() : 'null'));
-
-        if (userProfile != null) {
-          await storageService.storeUserProfile(userProfile);
-        }
-
-        if (modules != null && modules.isNotEmpty) {
-          await storageService.storeModules(modules);
-        }
-
-        // Save login information
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('isLoggedIn', true);
-        await prefs.setInt('loginTime', DateTime.now().millisecondsSinceEpoch);
-        await storage.write(key: 'email', value: email);
-        await storage.write(key: 'password', value: password);
-
-        print('Login success, navigating to /home');
+      try {
+        UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+        // On successful login, navigate to /home
         Navigator.of(context).pushReplacementNamed('/home');
-      } catch (e, stackTrace) {
-        print('Login error: ' + e.toString());
-        print('Stack trace: ' + stackTrace.toString());
+      } on FirebaseAuthException catch (e) {
+        String errorMsg = '';
+        if (e.code == 'user-not-found') {
+          errorMsg = 'No user found for that email.';
+        } else if (e.code == 'wrong-password') {
+          errorMsg = 'Wrong password provided.';
+        } else {
+          errorMsg = 'Login failed: ${e.message}';
+        }
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Login failed: ' + e.toString())),
+          SnackBar(content: Text(errorMsg)),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Login failed: $e')),
         );
       }
     }
