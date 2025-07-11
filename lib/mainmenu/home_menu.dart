@@ -19,6 +19,7 @@ class HomeMenu extends StatefulWidget {
   const HomeMenu({super.key, required this.uniqueIds});
 
   @override
+  // ignore: library_private_types_in_public_api
   _HomeMenuState createState() => _HomeMenuState();
 }
 

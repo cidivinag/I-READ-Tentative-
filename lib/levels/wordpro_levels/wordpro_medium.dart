@@ -8,6 +8,7 @@ class WordProMedium extends StatefulWidget {
   const WordProMedium({super.key});
 
   @override
+  // ignore: library_private_types_in_public_api
   _WordProMediumState createState() => _WordProMediumState();
 }
 
